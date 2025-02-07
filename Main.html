@@ -4,54 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>PDF Viewer</title>
-    <link rel="stylesheet" href="style.css">
+    <title>PDF Viewer (Two Pages)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <style>
-        body {
-            text-align: center;
-            font-family: Arial, sans-serif;
-        }
-        canvas {
-            border: 1px solid black;
-            max-width: 100%;
-        }
-        .controls {
-            margin: 10px;
-        }
+        body { text-align: center; font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        #pdf-container { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
+        canvas { border: 1px solid #ddd; background: #fff; }
+        .controls { margin-top: 10px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>PDF Viewer</h1>
-    <canvas id="pdf-render"></canvas>
+
     <div class="controls">
-        <button id="prev-page">Previous</button>
-        <span>Page <span id="page-num"></span> of <span id="page-count"></span></span>
-        <button id="next-page">Next</button>
+        <button id="prev-page">Previous Pages</button>
+        <span>Page <span id="page-num">1</span> - <span id="page-num2">2</span> of <span id="page-count"></span></span>
+        <button id="next-page">Next Pages</button>
+    </div>
+
+    <div id="pdf-container">
+        <canvas id="pdf-render-1"></canvas>
+        <canvas id="pdf-render-2"></canvas>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const url = 'PORTFOLIO_VERTICAL_SMALL-25.pdf'; // Your PDF file
-
             let pdfDoc = null,
                 pageNum = 1,
-                scale = 1.5, 
-                canvas = document.querySelector('#pdf-render'),
-                ctx = canvas.getContext('2d');
+                scale = 1,  // Adjusted scale for better fit
+                container = document.getElementById('pdf-container'),
+                canvas1 = document.querySelector('#pdf-render-1'),
+                ctx1 = canvas1.getContext('2d'),
+                canvas2 = document.querySelector('#pdf-render-2'),
+                ctx2 = canvas2.getContext('2d');
 
-            // Load PDF
-            pdfjsLib.getDocument(url).promise.then(pdf => {
-                pdfDoc = pdf;
-                document.querySelector("#page-count").textContent = pdfDoc.numPages; // Total pages
-                renderPage(pageNum);
-            });
-
-            function renderPage(num) {
+            function renderPage(num, canvas, ctx) {
+                if (num > pdfDoc.numPages) {
+                    canvas.style.display = "none"; // Hide second page if there's no more content
+                    return;
+                }
+                canvas.style.display = "block"; 
+                
                 pdfDoc.getPage(num).then(page => {
                     let viewport = page.getViewport({ scale });
-                    canvas.height = viewport.height;
+                    let scaleFactor = Math.min(
+                        (window.innerWidth / 2 - 20) / viewport.width, 
+                        (window.innerHeight - 100) / viewport.height
+                    );
+
+                    viewport = page.getViewport({ scale: scaleFactor });
+
                     canvas.width = viewport.width;
+                    canvas.height = viewport.height;
 
                     let renderCtx = {
                         canvasContext: ctx,
@@ -59,27 +64,42 @@
                     };
 
                     page.render(renderCtx);
-
-                    // Update page number display
-                    document.querySelector("#page-num").textContent = num;
                 });
             }
 
+            pdfjsLib.getDocument(url).promise.then(pdf => {
+                pdfDoc = pdf;
+                document.getElementById("page-count").textContent = pdf.numPages;
+                renderPages();
+            });
+
+            function renderPages() {
+                renderPage(pageNum, canvas1, ctx1);
+                renderPage(pageNum + 1, canvas2, ctx2);
+                document.getElementById("page-num").textContent = pageNum;
+                document.getElementById("page-num2").textContent = Math.min(pageNum + 1, pdfDoc.numPages);
+            }
+
             // Button Event Listeners
-            document.querySelector("#prev-page").addEventListener("click", function () {
+            document.getElementById("prev-page").addEventListener("click", function () {
                 if (pageNum > 1) {
-                    pageNum--;
-                    renderPage(pageNum);
+                    pageNum -= 2;
+                    if (pageNum < 1) pageNum = 1;
+                    renderPages();
                 }
             });
 
-            document.querySelector("#next-page").addEventListener("click", function () {
-                if (pageNum < pdfDoc.numPages) {
-                    pageNum++;
-                    renderPage(pageNum);
+            document.getElementById("next-page").addEventListener("click", function () {
+                if (pageNum + 1 < pdfDoc.numPages) {
+                    pageNum += 2;
+                    renderPages();
                 }
             });
+
+            // Adjust pages on window resize
+            window.addEventListener("resize", renderPages);
         });
     </script>
+
 </body>
 </html>
