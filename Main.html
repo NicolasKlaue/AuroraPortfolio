@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>PDF Viewer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 1px solid black;
+            max-width: 100%;
+        }
+        .controls {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF Viewer</h1>
+    <canvas id="pdf-render"></canvas>
+    <div class="controls">
+        <button id="prev-page">Previous</button>
+        <span>Page <span id="page-num"></span> of <span id="page-count"></span></span>
+        <button id="next-page">Next</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const url = 'PORTFOLIO_VERTICAL_SMALL-25.pdf'; // Your PDF file
+
+            let pdfDoc = null,
+                pageNum = 1,
+                scale = 1.5, 
+                canvas = document.querySelector('#pdf-render'),
+                ctx = canvas.getContext('2d');
+
+            // Load PDF
+            pdfjsLib.getDocument(url).promise.then(pdf => {
+                pdfDoc = pdf;
+                document.querySelector("#page-count").textContent = pdfDoc.numPages; // Total pages
+                renderPage(pageNum);
+            });
+
+            function renderPage(num) {
+                pdfDoc.getPage(num).then(page => {
+                    let viewport = page.getViewport({ scale });
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    let renderCtx = {
+                        canvasContext: ctx,
+                        viewport: viewport
+                    };
+
+                    page.render(renderCtx);
+
+                    // Update page number display
+                    document.querySelector("#page-num").textContent = num;
+                });
+            }
+
+            // Button Event Listeners
+            document.querySelector("#prev-page").addEventListener("click", function () {
+                if (pageNum > 1) {
+                    pageNum--;
+                    renderPage(pageNum);
+                }
+            });
+
+            document.querySelector("#next-page").addEventListener("click", function () {
+                if (pageNum < pdfDoc.numPages) {
+                    pageNum++;
+                    renderPage(pageNum);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
